@@ -21,7 +21,7 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - '3dprintables-ai'
+      - 'dprintables-ai'
       - '--image'
       - 'us-central1-docker.pkg.dev/dprintables-ai/dprintables-repo/3dprintables-ai'
       - '--region'
