@@ -11,28 +11,28 @@ const CreditsModal = ({ isOpen, onClose, user }) => {
     const discountTiers = [
         {
             id: 'thermal',
-            title: "Thermal Recruit",
-            requirement: "Initial Activation",
-            benefit: "10.00 CR Welcome Grant",
-            detail: "System has successfully provisioned 10.00 Laboratory Credits to your account as a startup incentive. These are available for immediate use at checkout.",
+            title: "New Member",
+            requirement: "Sign Up Bonus",
+            benefit: "10.00 CR Welcome Bonus",
+            detail: "You received 10.00 credits as a welcome bonus when you signed up. These credits can be applied at checkout toward any order.",
             icon: <Gift className="text-purple-400" />,
             status: user?.credits >= 0 ? "Active" : "Locked"
         },
         {
             id: 'engineer',
-            title: "Elite Engineer",
-            requirement: "50+ Career Prints",
-            benefit: "15% Credit-Back + Zero Delivery Fees",
-            detail: "Elite logistics protocol activated. High-volume engineers unlock 15% credit yields and automated zero-cost delivery across all physical sectors once they cross the 50-print threshold.",
+            title: "Loyal Customer",
+            requirement: "50+ Orders",
+            benefit: "15% Credit-Back + Free Shipping",
+            detail: "Loyal customers who complete 50 or more orders earn 15% credit-back on every purchase and free shipping on all future orders.",
             icon: <Award className="text-amber-400" />,
             status: user?.orderCount >= 50 ? "Active" : "Locked"
         },
         {
             id: 'master',
-            title: "Fabrication Master",
-            requirement: "200+ Career Prints",
-            benefit: "25% Credit-Back + Instant Prototype Access",
-            detail: "The ultimate laboratory standing. Maximum credit harvesting efficiency and priority access to unreleased AI fabrication models.",
+            title: "VIP Member",
+            requirement: "200+ Orders",
+            benefit: "25% Credit-Back + Early Access",
+            detail: "Our top-tier reward level. VIP members earn 25% credit-back and get early access to new products and features.",
             icon: <Zap className="text-pink-500" />,
             status: "Coming Soon"
         }
@@ -54,8 +54,8 @@ const CreditsModal = ({ isOpen, onClose, user }) => {
                 {/* Header */}
                 <div className="p-8 border-b border-white/5 flex justify-between items-center relative z-10">
                     <div>
-                        <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Vault <span className="text-purple-500">Inventory</span></h2>
-                        <p className="text-gray-500 font-bold text-xs uppercase tracking-[0.3em] mt-1">Laboratory Credit Allocation</p>
+                        <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Your <span className="text-purple-500">Credits</span></h2>
+                        <p className="text-gray-500 font-bold text-xs uppercase tracking-[0.3em] mt-1">Credit Balance & Rewards</p>
                     </div>
                     <button onClick={onClose} className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-colors text-gray-400 hover:text-white border border-white/10">
                         <X size={24} />
@@ -66,7 +66,7 @@ const CreditsModal = ({ isOpen, onClose, user }) => {
                 <div className="p-8 relative z-10">
                     <div className="bg-gradient-to-br from-purple-900/40 to-pink-900/20 border border-purple-500/30 p-10 rounded-[2.5rem] text-center mb-8 shadow-2xl relative group overflow-hidden" onMouseEnter={playHum}>
                         <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <span className="text-[10px] font-black text-purple-400 uppercase tracking-[0.4em] mb-4 block">Current Liquidity</span>
+                        <span className="text-[10px] font-black text-purple-400 uppercase tracking-[0.4em] mb-4 block">Available Balance</span>
                         <div className="flex items-center justify-center gap-4">
                             <span className="text-7xl font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
                                 {user?.credits?.toFixed(2) || '0.00'}
@@ -83,14 +83,14 @@ const CreditsModal = ({ isOpen, onClose, user }) => {
                         <div className="mb-6 bg-purple-500/10 border border-purple-500/30 p-6 rounded-3xl animate-in fade-in slide-in-from-top-4 duration-300">
                             <div className="flex items-center gap-2 mb-3">
                                 <Terminal size={14} className="text-purple-400" />
-                                <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Protocol Diagnostic Log</span>
+                                <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Reward Details</span>
                             </div>
                             <p className="text-sm text-gray-300 font-bold leading-relaxed">
                                 {discountTiers.find(t => t.id === activeDiagnostic)?.detail}
                             </p>
                             <div className="mt-4 flex items-center gap-2 text-[9px] font-black text-green-400 uppercase tracking-widest">
                                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-ping"></span>
-                                Synchronization Nominal
+                                Active
                             </div>
                         </div>
                     )}
@@ -98,7 +98,7 @@ const CreditsModal = ({ isOpen, onClose, user }) => {
                     {/* Discount Programs */}
                     <div className="space-y-4">
                         <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-[0.3em] pl-2 flex items-center gap-2">
-                            <Activity size={12} /> Optimization Protocols (Click for Detail)
+                            <Activity size={12} /> Rewards Program (Click for Details)
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -126,7 +126,7 @@ const CreditsModal = ({ isOpen, onClose, user }) => {
                                                 )}
                                                 <span className={`text-[9px] font-black uppercase tracking-widest ${tier.status === 'Active' || tier.status === 'Global Protocol' ? 'text-green-400' : 'text-gray-500'
                                                     }`}>
-                                                    {tier.status === 'Active' || tier.status === 'Global Protocol' ? 'Protocol Online' : 'Offline'}
+                                                    {tier.status === 'Active' || tier.status === 'Global Protocol' ? 'Active' : 'Locked'}
                                                 </span>
                                             </div>
                                         </div>
@@ -135,7 +135,7 @@ const CreditsModal = ({ isOpen, onClose, user }) => {
                                         {tier.benefit}
                                     </p>
                                     <div className="mt-3 flex justify-between items-center text-[8px] font-black uppercase tracking-[0.2em]">
-                                        <span className="text-gray-600">Click to Diagnostic</span>
+                                        <span className="text-gray-600">Click for Details</span>
                                         {tier.status === 'Coming Soon' ? null : (
                                             <span className="text-purple-500/40">READY</span>
                                         )}
@@ -152,7 +152,7 @@ const CreditsModal = ({ isOpen, onClose, user }) => {
                 {/* Footer Action */}
                 <div className="p-8 border-t border-white/5 bg-white/5 relative z-10 flex justify-center">
                     <Button onClick={onClose} className="w-full py-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all font-black uppercase tracking-widest text-xs">
-                        Dismiss Data View
+                        Close
                     </Button>
                 </div>
             </div>

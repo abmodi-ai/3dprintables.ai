@@ -1,53 +1,58 @@
-import React, { useState, useMemo } from 'react';
-import { Search, AlertTriangle } from 'lucide-react';
-import ProductCard from '../components/product/ProductCard';
+import React from 'react';
+import { Sparkles, ArrowRight, Rocket } from 'lucide-react';
 
-const SearchPage = ({ products, addToCart }) => {
-    const [searchTerm, setSearchTerm] = useState('');
-
-    const filteredProducts = useMemo(() => {
-        return products.filter(p =>
-            p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.category.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [searchTerm, products]);
-
+const SearchPage = ({ setView }) => {
     return (
-        <div className="container mx-auto px-4 py-24 min-h-[80vh]">
-            <div className="max-w-3xl mx-auto mb-20 text-center space-y-6">
-                <div className="relative group mt-8">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-500 rounded-[2.5rem] blur opacity-20 group-focus-within:opacity-40 transition-opacity duration-500"></div>
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Scan the archives (concepts, types, colors)..."
-                            className="w-full text-xl p-7 pl-16 rounded-[2rem] border border-white/10 bg-[#030014]/50 backdrop-blur-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none transition-all shadow-2xl text-white font-black placeholder-gray-500"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                        <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 text-purple-500" size={28} strokeWidth={2.5} />
+        <div className="container mx-auto px-4 py-16 sm:py-24 min-h-[80vh] flex flex-col items-center justify-center text-center">
+            {/* Animated Glows */}
+            <div className="absolute top-[30%] right-[15%] w-48 sm:w-72 md:w-96 h-48 sm:h-72 md:h-96 bg-purple-600/10 rounded-full blur-[120px] animate-pulse pointer-events-none"></div>
+            <div className="absolute bottom-[20%] left-[10%] w-48 sm:w-72 md:w-96 h-48 sm:h-72 md:h-96 bg-pink-600/10 rounded-full blur-[120px] animate-pulse pointer-events-none"></div>
+
+            <div className="relative z-10 max-w-2xl mx-auto">
+                {/* Icon */}
+                <div className="relative mb-8">
+                    <div className="absolute -inset-4 bg-gradient-to-r from-purple-600 to-pink-500 rounded-full opacity-20 blur-2xl animate-pulse"></div>
+                    <div className="relative w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-purple-600 to-pink-500 rounded-[2rem] sm:rounded-[2.5rem] flex items-center justify-center mx-auto shadow-[0_0_40px_rgba(168,85,247,0.4)]">
+                        <Rocket size={40} className="text-white sm:hidden" />
+                        <Rocket size={56} className="text-white hidden sm:block" />
                     </div>
+                </div>
+
+                {/* Badge */}
+                <div className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 mb-6">
+                    <Sparkles size={14} className="text-purple-400 animate-pulse" />
+                    <span className="text-[10px] sm:text-xs font-black text-purple-400 uppercase tracking-[0.3em]">Coming Soon</span>
+                    <Sparkles size={14} className="text-purple-400 animate-pulse" />
+                </div>
+
+                {/* Heading */}
+                <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white mb-4 sm:mb-6 tracking-tighter leading-tight">
+                    Browse <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-500">Products</span>
+                </h1>
+
+                {/* Description */}
+                <p className="text-base sm:text-lg text-gray-400 max-w-lg mx-auto mb-8 sm:mb-10 leading-relaxed font-medium px-4">
+                    We're building a marketplace where you can browse pre-designed 3D printable creations.
+                    In the meantime, describe any idea and we'll bring it to life!
+                </p>
+
+                {/* CTA */}
+                <button
+                    onClick={() => setView('home')}
+                    className="inline-flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-8 sm:px-10 py-4 sm:py-5 rounded-xl sm:rounded-2xl font-black text-sm sm:text-lg transition-all hover:scale-105 shadow-[0_0_30px_rgba(147,51,234,0.4)] hover:shadow-[0_0_50px_rgba(147,51,234,0.6)] group"
+                >
+                    Design Something Custom
+                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform sm:hidden" />
+                    <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform hidden sm:block" />
+                </button>
+
+                {/* Decorative dots */}
+                <div className="mt-12 sm:mt-16 flex items-center justify-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-purple-500/30"></div>
+                    <div className="w-2 h-2 rounded-full bg-pink-500/30"></div>
+                    <div className="w-2 h-2 rounded-full bg-blue-500/30"></div>
                 </div>
             </div>
-
-            {filteredProducts.length === 0 ? (
-                <div className="text-center py-24 bg-white/5 rounded-[3rem] border border-dashed border-white/10 animate-in fade-in duration-1000 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent"></div>
-                    <div className="w-24 h-24 bg-gray-900 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl border border-white/5 relative z-10">
-                        <AlertTriangle size={48} className="text-gray-700" />
-                    </div>
-                    <h3 className="text-2xl font-black text-white mb-2 relative z-10">Neural Map Depleted</h3>
-                    <p className="text-gray-400 font-bold max-w-xs mx-auto relative z-10">No matches found for "{searchTerm}". The system suggests initializing a new design sequence.</p>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                    {filteredProducts.map(product => (
-                        <div key={product.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <ProductCard product={product} addToCart={addToCart} />
-                        </div>
-                    ))}
-                </div>
-            )}
         </div>
     );
 };

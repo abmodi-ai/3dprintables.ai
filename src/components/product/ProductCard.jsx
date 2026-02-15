@@ -60,16 +60,13 @@ const ProductCard = ({ product, addToCart }) => {
             </div>
 
             <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/5 px-1">
-                <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none mb-2 italic">Unit Price</span>
-                    <span className="text-3xl font-black text-white leading-none shadow-[0_0_15px_rgba(255,255,255,0.1)]">${product.price}</span>
-                </div>
+                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic">Custom Quote</span>
                 <button
                     onClick={handleAddToCart}
-                    className="bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-2xl transition-all duration-300 shadow-lg shadow-purple-900/20 hover:shadow-purple-500/40 transform active:scale-90 border border-purple-400/20"
-                    aria-label="Add to cart"
+                    className="bg-purple-600 hover:bg-purple-500 text-white px-5 py-3 rounded-2xl transition-all duration-300 shadow-lg shadow-purple-900/20 hover:shadow-purple-500/40 transform active:scale-90 border border-purple-400/20 text-xs font-black uppercase tracking-widest flex items-center gap-2"
+                    aria-label="Get quote"
                 >
-                    <ShoppingCart size={22} strokeWidth={2.5} />
+                    <ShoppingCart size={16} strokeWidth={2.5} /> Get Quote
                 </button>
             </div>
         </div>

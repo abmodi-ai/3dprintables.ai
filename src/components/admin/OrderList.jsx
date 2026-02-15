@@ -7,12 +7,12 @@ const OrderList = ({ orders, isLoadingOrders }) => {
             {isLoadingOrders ? (
                 <div className="flex flex-col items-center py-32 text-gray-700">
                     <Loader2 className="animate-spin mb-6 text-purple-500" size={64} />
-                    <p className="font-black uppercase tracking-[0.4em] text-xs">Decrypting Manifest Vault...</p>
+                    <p className="font-black uppercase tracking-[0.4em] text-xs">Loading Orders...</p>
                 </div>
             ) : orders.length === 0 ? (
                 <div className="bg-white/5 p-32 rounded-[4rem] border border-dashed border-white/5 text-center shadow-inner">
                     <Package className="mx-auto text-gray-950 mb-6" size={80} />
-                    <h3 className="text-3xl font-black text-gray-800 uppercase tracking-tighter">Manifest Vault Primary Zero</h3>
+                    <h3 className="text-3xl font-black text-gray-800 uppercase tracking-tighter">No Orders Yet</h3>
                 </div>
             ) : (
                 orders.map(order => (
@@ -21,13 +21,13 @@ const OrderList = ({ orders, isLoadingOrders }) => {
                             <div className="flex flex-col md:flex-row justify-between gap-10 mb-10 pb-10 border-b border-white/5">
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-4">
-                                        <span className="bg-purple-600/20 text-purple-400 text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full border border-purple-500/20">Operational Record</span>
-                                        <span className="text-gray-600 font-mono text-sm font-bold">CID_{order.id.split('_')[1]}</span>
+                                        <span className="bg-purple-600/20 text-purple-400 text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full border border-purple-500/20">Order</span>
+                                        <span className="text-gray-600 font-mono text-sm font-bold">#{order.id.split('_')[1]}</span>
                                     </div>
                                     <h3 className="text-4xl font-black text-white tracking-tighter">{order.customer_name}</h3>
                                     <div className="flex flex-wrap gap-6 text-xs font-black uppercase tracking-widest text-gray-500">
-                                        <span className="flex items-center gap-2"><span className="text-purple-500">CHANNEL:</span> {order.email}</span>
-                                        <span className="flex items-center gap-2"><span className="text-purple-500">COMM:</span> {order.phone}</span>
+                                        <span className="flex items-center gap-2"><span className="text-purple-500">Email:</span> {order.email}</span>
+                                        <span className="flex items-center gap-2"><span className="text-purple-500">Phone:</span> {order.phone}</span>
                                     </div>
                                 </div>
                                 <div className="text-right md:min-w-[200px]">
@@ -40,15 +40,15 @@ const OrderList = ({ orders, isLoadingOrders }) => {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
                                 <div className="space-y-8">
                                     <h4 className="text-[10px] font-black text-purple-400 uppercase tracking-[0.4em] flex items-center gap-4">
-                                        <div className="w-10 h-0.5 bg-purple-500/30"></div> Logistics Status
+                                        <div className="w-10 h-0.5 bg-purple-500/30"></div> Shipping Details
                                     </h4>
                                     <div className="grid grid-cols-1 gap-8">
                                         <div className="space-y-2 group/coord">
-                                            <div className="text-[10px] font-black text-gray-600 group-hover/coord:text-gray-400 transition-colors">PRIMARY COORD. (SHIPPING)</div>
+                                            <div className="text-[10px] font-black text-gray-600 group-hover/coord:text-gray-400 transition-colors">SHIPPING ADDRESS</div>
                                             <p className="text-sm font-bold text-gray-400 leading-relaxed bg-white/5 p-4 rounded-2xl border border-white/5">{order.shipping_address}</p>
                                         </div>
                                         <div className="space-y-2 group/coord">
-                                            <div className="text-[10px] font-black text-gray-600 group-hover/coord:text-gray-400 transition-colors">FINANCIAL SECTOR (BILLING)</div>
+                                            <div className="text-[10px] font-black text-gray-600 group-hover/coord:text-gray-400 transition-colors">BILLING ADDRESS</div>
                                             <p className="text-sm font-bold text-gray-400 leading-relaxed bg-white/5 p-4 rounded-2xl border border-white/5">{order.billing_address}</p>
                                         </div>
                                     </div>
@@ -56,7 +56,7 @@ const OrderList = ({ orders, isLoadingOrders }) => {
 
                                 <div className="space-y-8">
                                     <h4 className="text-[10px] font-black text-pink-400 uppercase tracking-[0.4em] flex items-center gap-4">
-                                        <div className="w-10 h-0.5 bg-pink-500/30"></div> Cargo Manifest
+                                        <div className="w-10 h-0.5 bg-pink-500/30"></div> Order Items
                                     </h4>
                                     <div className="space-y-4">
                                         {order.items.map((item, idx) => (
@@ -67,7 +67,7 @@ const OrderList = ({ orders, isLoadingOrders }) => {
                                                 <div className="flex-1 min-w-0">
                                                     <div className="font-black text-white text-lg tracking-tight truncate">{item.product_name}</div>
                                                     <div className="text-[10px] font-black text-purple-400 uppercase tracking-widest mt-1">
-                                                        Load: {item.quantity} units <span className="mx-2 text-gray-700">|</span> Value: ${item.price}
+                                                        Qty: {item.quantity} <span className="mx-2 text-gray-700">|</span> Price: ${item.price}
                                                     </div>
                                                 </div>
                                             </div>
@@ -79,9 +79,9 @@ const OrderList = ({ orders, isLoadingOrders }) => {
                         <div className="bg-white/5 px-10 py-6 border-t border-white/5 flex justify-between items-center group-hover:bg-purple-600 transition-colors duration-700">
                             <div className="text-[10px] font-black text-gray-600 tracking-[0.4em] group-hover:text-purple-200 uppercase flex items-center gap-3">
                                 <div className="w-2 h-2 rounded-full bg-purple-500 animate-ping"></div>
-                                PHASE: Active Fabrication
+                                Status: In Production
                             </div>
-                            <button className="text-[10px] font-black text-purple-400 bg-gray-950 px-6 py-3 rounded-2xl border border-white/5 shadow-2xl hover:scale-110 hover:bg-white hover:text-purple-600 transition-all uppercase tracking-widest">Mark Dispatched</button>
+                            <button className="text-[10px] font-black text-purple-400 bg-gray-950 px-6 py-3 rounded-2xl border border-white/5 shadow-2xl hover:scale-110 hover:bg-white hover:text-purple-600 transition-all uppercase tracking-widest">Mark Shipped</button>
                         </div>
                     </div>
                 ))

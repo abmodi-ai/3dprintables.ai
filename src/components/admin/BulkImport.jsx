@@ -10,9 +10,9 @@ const BulkImport = ({ bulkFile, handleCSVUpload, processCSV, isUploading, aiProg
             <div className="bg-purple-600/10 w-24 h-24 rounded-[2rem] border border-purple-500/20 flex items-center justify-center mx-auto mb-10 shadow-2xl shadow-purple-500/10">
                 <FileSpreadsheet className="text-purple-400" size={48} />
             </div>
-            <h3 className="text-4xl font-black text-white mb-4 tracking-tighter uppercase">Mass Import Sequence</h3>
+            <h3 className="text-4xl font-black text-white mb-4 tracking-tighter uppercase">Bulk Import</h3>
             <p className="text-gray-500 font-bold max-w-md mx-auto leading-relaxed mb-12">
-                Initialize packet transfer via CSV to batch-process blueprints through the Gemini Neural Engine.
+                Upload a CSV file to add multiple products at once. AI will enhance product details automatically.
             </p>
 
             <div className="border-2 border-dashed border-white/5 rounded-[3rem] p-12 hover:border-purple-500/40 transition-all bg-white/5 relative mb-12 group">
@@ -33,8 +33,8 @@ const BulkImport = ({ bulkFile, handleCSVUpload, processCSV, isUploading, aiProg
                 ) : (
                     <div className="text-gray-700 group-hover:text-gray-500 transition-colors flex flex-col items-center gap-4">
                         <Upload className="opacity-20 group-hover:scale-110 transition-transform" size={48} />
-                        <p className="font-black text-xl uppercase tracking-tighter">Sector Selection</p>
-                        <p className="text-xs uppercase tracking-[0.2em] font-bold">CSV Protocol: name, price, category, ...</p>
+                        <p className="font-black text-xl uppercase tracking-tighter">Drop CSV Here</p>
+                        <p className="text-xs uppercase tracking-[0.2em] font-bold">Format: name, price, category, ...</p>
                     </div>
                 )}
             </div>
@@ -48,7 +48,7 @@ const BulkImport = ({ bulkFile, handleCSVUpload, processCSV, isUploading, aiProg
                     <div className="flex flex-col items-center gap-4">
                         <div className="flex items-center gap-4">
                             <Loader2 className="animate-spin" size={24} />
-                            <span className="text-sm">NEURAL ENHANCEMENT IN PROGRESS... {aiProgress}%</span>
+                            <span className="text-sm">Processing Products... {aiProgress}%</span>
                         </div>
                         <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden max-w-sm">
                             <div
@@ -58,7 +58,7 @@ const BulkImport = ({ bulkFile, handleCSVUpload, processCSV, isUploading, aiProg
                         </div>
                     </div>
                 ) : (
-                    <><Plus className="mr-3" /> Execute Mass Import</>
+                    <><Plus className="mr-3" /> Start Import</>
                 )}
             </Button>
 
@@ -66,7 +66,7 @@ const BulkImport = ({ bulkFile, handleCSVUpload, processCSV, isUploading, aiProg
                 onClick={() => setActiveTab('manage')}
                 className="mt-10 text-gray-600 hover:text-purple-400 font-black text-xs uppercase tracking-widest transition-all"
             >
-                Abort Sequence
+                Cancel
             </button>
         </div>
     );

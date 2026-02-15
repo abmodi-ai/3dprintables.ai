@@ -33,7 +33,7 @@ const LabAmbience = () => {
                         ? 'bg-purple-600 border-purple-400 text-white shadow-purple-500/50 scale-110'
                         : 'bg-gray-900 border-white/10 text-gray-500 hover:text-white hover:border-purple-500/30'
                     }`}
-                title={isActive ? "Deactivate Lab Ambience" : "Initialize Lab Ambience"}
+                title={isActive ? "Turn off ambient sounds" : "Turn on ambient sounds"}
             >
                 {isActive ? <Volume2 size={20} className="animate-pulse" /> : <VolumeX size={20} />}
             </button>
@@ -43,7 +43,7 @@ const LabAmbience = () => {
                     <div className="flex items-center gap-2">
                         <Activity size={12} className="text-green-500 animate-pulse" />
                         <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">
-                            Ambient Loop: <span className="text-white">Active</span>
+                            Sound: <span className="text-white">On</span>
                         </span>
                     </div>
                 </div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import Hero from './components/home/Hero';
+import HowItWorks from './components/home/HowItWorks';
 import LoadingScreen from './components/common/LoadingScreen';
 import BackgroundEffects from './components/common/BackgroundEffects';
 import CreditsModal from './components/common/CreditsModal';
@@ -15,6 +16,8 @@ import SearchPage from './pages/SearchPage';
 import CheckoutPage from './pages/CheckoutPage';
 import AdminDashboard from './pages/AdminDashboard';
 import UserAccountPage from './pages/UserAccountPage';
+import OurStoryPage from './pages/OurStoryPage';
+import ChatHistoryView from './pages/ChatHistoryView';
 
 // Components
 import AuthModal from './components/auth/AuthModal';
@@ -27,20 +30,29 @@ const App = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isCreditsModalOpen, setIsCreditsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Chat session state — threaded to Hero and CheckoutPage
+  const [chatSessionId, setChatSessionId] = useState(null);
+  const [viewChatSessionId, setViewChatSessionId] = useState(null);
+
+  // Scroll to top on view change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [view]);
 
   // Auth State
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('printpalooza_user');
+    const saved = localStorage.getItem('3dprintables_user');
     return saved ? JSON.parse(saved) : null;
   });
-  const [token, setToken] = useState(() => localStorage.getItem('printpalooza_token'));
+  const [token, setToken] = useState(() => localStorage.getItem('3dprintables_token'));
 
   // Initialize from LocalStorage
   const [products, setProducts] = useState([]);
 
   const [cart, setCart] = useState(() => {
-    const saved = localStorage.getItem('printpalooza_cart');
+    const saved = localStorage.getItem('3dprintables_cart');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -49,21 +61,20 @@ const App = () => {
     const fetchProducts = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('http://localhost:3001/api/products');
+        const response = await fetch('/api/products');
         const data = await response.json();
         if (data && data.length > 0) {
           setProducts(data);
         } else {
-          const saved = localStorage.getItem('printpalooza_products');
+          const saved = localStorage.getItem('3dprintables_products');
           setProducts(saved ? JSON.parse(saved) : INITIAL_PRODUCTS);
         }
-      } catch (error) {
-        console.error('Failed to fetch from DB:', error);
-        const saved = localStorage.getItem('printpalooza_products');
+      } catch {
+        // Backend unavailable — fall back to local/mock data silently
+        const saved = localStorage.getItem('3dprintables_products');
         setProducts(saved ? JSON.parse(saved) : INITIAL_PRODUCTS);
       } finally {
-        // Add a slight delay for aesthetic "synchronizing" feel
-        setTimeout(() => setIsLoading(false), 1500);
+        setIsLoading(false);
       }
     };
     fetchProducts();
@@ -72,22 +83,22 @@ const App = () => {
   // Persistence Effects
   useEffect(() => {
     if (products.length > 0) {
-      localStorage.setItem('printpalooza_products', JSON.stringify(products));
+      localStorage.setItem('3dprintables_products', JSON.stringify(products));
     }
   }, [products]);
 
   useEffect(() => {
-    localStorage.setItem('printpalooza_cart', JSON.stringify(cart));
+    localStorage.setItem('3dprintables_cart', JSON.stringify(cart));
   }, [cart]);
 
   useEffect(() => {
-    if (user) localStorage.setItem('printpalooza_user', JSON.stringify(user));
-    else localStorage.removeItem('printpalooza_user');
+    if (user) localStorage.setItem('3dprintables_user', JSON.stringify(user));
+    else localStorage.removeItem('3dprintables_user');
   }, [user]);
 
   useEffect(() => {
-    if (token) localStorage.setItem('printpalooza_token', token);
-    else localStorage.removeItem('printpalooza_token');
+    if (token) localStorage.setItem('3dprintables_token', token);
+    else localStorage.removeItem('3dprintables_token');
   }, [token]);
 
   // Auth Functions
@@ -100,8 +111,8 @@ const App = () => {
   const logout = () => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem('printpalooza_user');
-    localStorage.removeItem('printpalooza_token');
+    localStorage.removeItem('3dprintables_user');
+    localStorage.removeItem('3dprintables_token');
   };
 
   // Cart Functions
@@ -163,14 +174,19 @@ const App = () => {
       />
 
       <main className="flex-1">
-        {view === 'home' && (
-          <>
-            <Hero setView={setView} />
-            <AIChatPage addToCart={addToCart} setView={setView} user={user} />
-          </>
+        <div style={{ display: view === 'home' ? 'block' : 'none' }}>
+          <Hero setView={setView} addToCart={addToCart} user={user} chatSessionId={chatSessionId} setChatSessionId={setChatSessionId} />
+          <HowItWorks />
+        </div>
+        {view === 'our-story' && <OurStoryPage setView={setView} />}
+        {view === 'chat-history' && (
+          <ChatHistoryView
+            sessionId={viewChatSessionId}
+            setView={setView}
+            setChatSessionId={setChatSessionId}
+          />
         )}
-        {view === 'ai-lab' && <AIChatPage addToCart={addToCart} setView={setView} user={user} />}
-        {view === 'search' && <SearchPage products={products} addToCart={addToCart} />}
+        {view === 'search' && <SearchPage setView={setView} />}
         {view === 'cart' && (
           <CheckoutPage
             cart={cart}
@@ -181,6 +197,7 @@ const App = () => {
             user={user}
             onAuthSuccess={handleAuthSuccess}
             openAuth={() => setIsAuthModalOpen(true)}
+            chatSessionId={chatSessionId}
           />
         )}
         {view === 'admin' && (
@@ -199,6 +216,7 @@ const App = () => {
             setView={setView}
             addToCart={addToCart}
             onAuthSuccess={handleAuthSuccess}
+            onViewChat={(sessionId) => { setViewChatSessionId(sessionId); setView('chat-history'); }}
           />
         )}
       </main>

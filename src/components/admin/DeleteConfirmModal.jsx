@@ -12,16 +12,16 @@ const DeleteConfirmModal = ({ itemToDelete, setItemToDelete, deleteProduct }) =>
                 <div className="bg-rose-500/10 w-24 h-24 rounded-[2rem] border border-rose-500/30 flex items-center justify-center mx-auto mb-8 text-rose-500 shadow-2xl shadow-rose-500/10">
                     <AlertTriangle size={48} className="animate-pulse" />
                 </div>
-                <h3 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase">Confirm Decommission</h3>
+                <h3 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase">Confirm Delete</h3>
                 <p className="text-gray-500 font-bold leading-relaxed mb-10">
-                    Unit <span className="text-rose-400">"{itemToDelete.name}"</span> will be permanently purged from the inventory database. This action is irreversible.
+                    <span className="text-rose-400">"{itemToDelete.name}"</span> will be permanently removed from the inventory. This action cannot be undone.
                 </p>
                 <div className="flex gap-4">
                     <Button
                         onClick={() => setItemToDelete(null)}
                         className="flex-1 py-5 bg-white/5 hover:bg-white/10 border-white/5 text-gray-400 font-black uppercase tracking-widest text-xs"
                     >
-                        Abort
+                        Cancel
                     </Button>
                     <Button
                         onClick={() => {
@@ -30,7 +30,7 @@ const DeleteConfirmModal = ({ itemToDelete, setItemToDelete, deleteProduct }) =>
                         }}
                         className="flex-1 py-5 bg-rose-600 hover:bg-rose-500 text-white font-black uppercase tracking-widest text-xs shadow-lg shadow-rose-900/20"
                     >
-                        Purge Unit
+                        Delete
                     </Button>
                 </div>
             </div>

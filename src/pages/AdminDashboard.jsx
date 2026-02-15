@@ -37,7 +37,7 @@ const AdminDashboard = ({ addNewProduct, addBulkProducts, deleteProduct, product
     const fetchOrders = async () => {
         setIsLoadingOrders(true);
         try {
-            const response = await fetch('http://localhost:3001/api/orders');
+            const response = await fetch('/api/orders');
             const data = await response.json();
             setOrders(data);
         } catch (error) {
@@ -115,7 +115,7 @@ const AdminDashboard = ({ addNewProduct, addBulkProducts, deleteProduct, product
         };
 
         try {
-            const response = await fetch('http://localhost:3001/api/products', {
+            const response = await fetch('/api/products', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newProduct)
@@ -228,16 +228,16 @@ const AdminDashboard = ({ addNewProduct, addBulkProducts, deleteProduct, product
                             <ArrowLeft />
                         </button>
                         <div>
-                            <h2 className="text-4xl font-black text-white tracking-tighter uppercase">Command <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">Center</span></h2>
-                            <p className="text-gray-500 text-xs font-black uppercase tracking-[0.3em] mt-1 italic">Authorized Personnel Only</p>
+                            <h2 className="text-4xl font-black text-white tracking-tighter uppercase">Admin <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">Dashboard</span></h2>
+                            <p className="text-gray-500 text-xs font-black uppercase tracking-[0.3em] mt-1 italic">Manage Products & Orders</p>
                         </div>
                     </div>
 
                     <div className="flex bg-gray-950/80 backdrop-blur-xl p-1.5 rounded-[2rem] border border-white/5 overflow-x-auto shadow-2xl">
                         {[
-                            { id: 'add', label: 'Add Unit', icon: <Plus size={16} /> },
-                            { id: 'bulk', label: 'Mass Import', icon: <FileSpreadsheet size={16} /> },
-                            { id: 'orders', label: 'Live Manifests', icon: <Package size={16} /> },
+                            { id: 'add', label: 'Add Product', icon: <Plus size={16} /> },
+                            { id: 'bulk', label: 'Bulk Import', icon: <FileSpreadsheet size={16} /> },
+                            { id: 'orders', label: 'Orders', icon: <Package size={16} /> },
                             { id: 'manage', label: `Inventory (${products.length})`, icon: <Wand2 size={16} /> }
                         ].map(tab => (
                             <button

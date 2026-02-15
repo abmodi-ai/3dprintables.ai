@@ -20,9 +20,9 @@ const HeaderSection = ({ ...props }) => (
     </section>
 );
 
-const AIChatPage = ({ addToCart, setView, user }) => {
+const AIChatPage = ({ addToCart, setView, user, initialMessage, onMessageConsumed }) => {
     const [messages, setMessages] = useState([
-        { role: 'assistant', content: 'Hi there! I\'m your Gemini-powered Toy Designer. Describe any toy you can imagine, or upload a sketch, and I\'ll bring it to life with 3D design data and a preview image!' }
+        { role: 'assistant', content: 'Hi there! I\'m your AI Design Assistant. Describe any product you can imagine, or upload a sketch, and I\'ll create a 3D design preview for you!' }
     ]);
     const [input, setInput] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -35,10 +35,24 @@ const AIChatPage = ({ addToCart, setView, user }) => {
     const [targetColor, setTargetColor] = useState('Matte Black');
     const scrollRef = useRef(null);
     const chatEndRef = useRef(null);
+    const hasProcessedInitialMessage = useRef(false);
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, isGenerating]);
+
+    // Handle initial message from hero chat input
+    useEffect(() => {
+        if (initialMessage && !hasProcessedInitialMessage.current) {
+            hasProcessedInitialMessage.current = true;
+            // Small delay to let the component mount fully
+            const timer = setTimeout(() => {
+                handleSend(initialMessage);
+                if (onMessageConsumed) onMessageConsumed();
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [initialMessage]);
 
 
     const handleSend = async (overrideInput = null, overrideImage = null) => {
@@ -54,12 +68,12 @@ const AIChatPage = ({ addToCart, setView, user }) => {
 
         const currentApiKey = import.meta.env.VITE_GEMINI_API_KEY;
         if (!currentApiKey) {
-            setMessages(prev => [...prev, { role: 'assistant', content: 'System Error: No API key found in .env. Please add VITE_GEMINI_API_KEY and restart your server.' }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: 'Our design service is temporarily unavailable. Please try again in a moment. If the issue persists, contact our support team.' }]);
             return;
         }
 
         if (currentApiKey.startsWith('AQ.')) {
-            setMessages(prev => [...prev, { role: 'assistant', content: 'Laboratory Error: You are using an Identity Token (starts with AQ.) instead of a Gemini API Key. Please get a valid key (starts with AIzaSy) from Google AI Studio.' }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: 'Our design service is temporarily unavailable due to a configuration issue. Please try again later or contact support.' }]);
             return;
         }
 
@@ -97,20 +111,14 @@ const AIChatPage = ({ addToCart, setView, user }) => {
             }]);
             playClink();
         } catch (error) {
-            console.error("🚨 Gemini API Error Details:", error);
+            console.error("Design generation error:", error);
 
-            let errorMessage = `I'm having trouble connecting to my brain (API Error).\n\n`;
+            let errorMessage;
 
-            if (error.message?.includes('403') || error.status === 403) {
-                errorMessage += "❌ Error 403: This API key doesn't have permission to use Gemini.\n\nPlease:\n1. Go to https://aistudio.google.com/apikey\n2. Create a new API key\n3. Update your .env file with: VITE_GEMINI_API_KEY=your-new-key";
-            } else if (error.message?.includes('429') || error.status === 429) {
-                errorMessage += "⏱️ Error 429: Rate limit exceeded. You've made too many requests.\n\nPlease wait a few minutes and try again.";
-            } else if (error.message?.includes('400') || error.status === 400) {
-                errorMessage += "❌ Error 400: Invalid request format or API key.\n\nPlease check your API key at https://aistudio.google.com/apikey";
-            } else if (error.message?.includes('API key not found')) {
-                errorMessage += "❌ No API key found in .env file.\n\nPlease add: VITE_GEMINI_API_KEY=your-key-here";
+            if (error.message?.includes('429') || error.status === 429) {
+                errorMessage = "We're experiencing high demand right now. Please wait a moment and try again.";
             } else {
-                errorMessage += `❌ Unexpected error: ${error.message}\n\nCheck the browser console (F12) for details.`;
+                errorMessage = "Sorry, I wasn't able to generate your design right now. Please try again in a moment. If the issue persists, contact our support team for help.";
             }
 
             setMessages(prev => [...prev, {
@@ -149,13 +157,13 @@ const AIChatPage = ({ addToCart, setView, user }) => {
 
     const saveBlueprint = async (product) => {
         if (!user) {
-            setMessages(prev => [...prev, { role: 'assistant', content: '🔒 Please sign in to save blueprints to your personal laboratory folder.' }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: '🔒 Please sign in to save designs to your account.' }]);
             return;
         }
 
         setIsSaving(true);
         try {
-            const response = await fetch('http://localhost:3001/api/blueprints', {
+            const response = await fetch('/api/blueprints', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -174,7 +182,7 @@ const AIChatPage = ({ addToCart, setView, user }) => {
             setTimeout(() => setSaveFeedback(null), 3000);
         } catch (error) {
             console.error('Save error:', error);
-            alert('Failed to save blueprint. Please try again.');
+            setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, we couldn\'t save your design right now. Please try again.' }]);
         } finally {
             setIsSaving(false);
         }
@@ -212,7 +220,7 @@ const AIChatPage = ({ addToCart, setView, user }) => {
                             </div>
                             <div className="max-w-md space-y-3">
                                 <h3 className="text-3xl font-black text-white leading-tight">Bring your ideas to life.</h3>
-                                <p className="text-gray-400 font-medium">Dimensionally accurate pricing, real-time engineering analysis, and high-fidelity output.</p>
+                                <p className="text-gray-400 font-medium">Accurate pricing based on your design, instant feedback, and high-quality 3D prints.</p>
                             </div>
                         </div>
                     )}
@@ -284,7 +292,7 @@ const AIChatPage = ({ addToCart, setView, user }) => {
                                                         <div className="flex items-center gap-3">
                                                             <span className="text-purple-400 text-xs font-bold uppercase tracking-widest">{msg.product.category}</span>
                                                             <span className="w-1 h-1 rounded-full bg-gray-600"></span>
-                                                            <span className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Ready for Manufacturing</span>
+                                                            <span className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Design Preview</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -294,7 +302,7 @@ const AIChatPage = ({ addToCart, setView, user }) => {
                                                     <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-transparent"></div>
                                                     <Sparkles size={16} className="text-purple-400 animate-pulse" />
                                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] relative z-10">
-                                                        <span className="text-purple-400">Price Protocol:</span> We will tell you the price later
+                                                        <span className="text-purple-400">Pricing:</span> Quote provided after review
                                                     </p>
                                                 </div>
 
@@ -318,7 +326,7 @@ const AIChatPage = ({ addToCart, setView, user }) => {
                                                             className="flex-1 py-5 text-sm bg-gray-800 text-blue-400 hover:bg-gray-700 hover:text-blue-300 shadow-none rounded-[1.5rem] flex items-center justify-center gap-2 border border-blue-500/20"
                                                         >
                                                             <Bookmark size={18} />
-                                                            <span className="hidden sm:inline">Archive</span>
+                                                            <span className="hidden sm:inline">Save</span>
                                                         </Button>
                                                     </div>
                                                     <Button
@@ -355,7 +363,7 @@ const AIChatPage = ({ addToCart, setView, user }) => {
                                     <Loader2 size={24} className="animate-spin" />
                                 </div>
                                 <div className="bg-white/80 backdrop-blur-xl border border-white/50 p-6 rounded-3xl rounded-tl-none shadow-xl">
-                                    <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Laboratory Analysis Underway...</span>
+                                    <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Generating your design...</span>
                                 </div>
                             </div>
                         </div>
@@ -411,7 +419,7 @@ const AIChatPage = ({ addToCart, setView, user }) => {
                             <Check size={20} className="text-white" />
                         </div>
                         <div className="font-bold">
-                            <span className="text-purple-300">"{saveFeedback}"</span> successfully archived to Blueprints!
+                            <span className="text-purple-300">"{saveFeedback}"</span> saved to your designs!
                         </div>
                     </div>
                 </div>

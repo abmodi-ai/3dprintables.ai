@@ -16,7 +16,7 @@ const ColorModal = ({ isColorModalOpen, productToEdit, setIsColorModalOpen, cust
                         <Palette size={24} />
                     </div>
                     <div>
-                        <h3 className="text-xl font-black text-gray-900">Repaint Procedure</h3>
+                        <h3 className="text-xl font-black text-gray-900">Change Color</h3>
                         <p className="text-sm text-gray-500 font-bold">New look for "{productToEdit.name}"</p>
                     </div>
                 </div>
@@ -74,7 +74,7 @@ const ColorModal = ({ isColorModalOpen, productToEdit, setIsColorModalOpen, cust
                         disabled={!customColor}
                         className="flex-[2] py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-purple-200"
                     >
-                        Apply Paint
+                        Apply Color
                     </button>
                 </div>
             </div>

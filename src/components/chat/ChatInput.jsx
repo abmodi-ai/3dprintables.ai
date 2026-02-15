@@ -42,7 +42,7 @@ const ChatInput = ({
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] font-black text-gray-600 uppercase tracking-[0.3em] flex items-center gap-2">
                                 <Palette size={12} className="text-purple-400" />
-                                Selection Palette
+                                Color Selection
                             </span>
                         </div>
                     </div>

@@ -8,9 +8,9 @@ const InventoryTable = ({ products, setItemToDelete }) => {
                 <table className="w-full text-left">
                     <thead>
                         <tr className="bg-white/5 text-gray-500 border-b border-white/5">
-                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.4em]">Unit Description</th>
-                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.4em] text-center">Price Index</th>
-                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.4em] text-center">Classification</th>
+                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.4em]">Product</th>
+                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.4em] text-center">Price</th>
+                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.4em] text-center">Category</th>
                             <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.4em] text-right">Actions</th>
                         </tr>
                     </thead>
@@ -45,7 +45,7 @@ const InventoryTable = ({ products, setItemToDelete }) => {
                                     <button
                                         onClick={() => setItemToDelete(product)}
                                         className="p-4 text-gray-700 hover:text-rose-500 bg-white/5 hover:bg-rose-500/10 rounded-2xl transition-all border border-transparent hover:border-rose-500/20"
-                                        title="Decommission Unit"
+                                        title="Delete Product"
                                     >
                                         <Trash2 size={24} />
                                     </button>
@@ -55,8 +55,8 @@ const InventoryTable = ({ products, setItemToDelete }) => {
                         {products.length === 0 && (
                             <tr>
                                 <td colSpan="4" className="px-8 py-32 text-center">
-                                    <div className="text-gray-800 text-3xl font-black uppercase tracking-tighter">Inventory Zero</div>
-                                    <p className="text-gray-600 font-black text-xs uppercase tracking-widest mt-2 italic">Awaiting unit deployment</p>
+                                    <div className="text-gray-800 text-3xl font-black uppercase tracking-tighter">No Products</div>
+                                    <p className="text-gray-600 font-black text-xs uppercase tracking-widest mt-2 italic">Add products to see them here</p>
                                 </td>
                             </tr>
                         )}

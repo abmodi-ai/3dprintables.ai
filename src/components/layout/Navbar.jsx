@@ -14,14 +14,15 @@ const Navbar = ({ cartCount, setView, mobileMenuOpen, setMobileMenuOpen, user, l
                 </div>
                 <div className="flex flex-col">
                     <span className="text-xl font-black text-white tracking-tighter leading-none">
-                        PRINT<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">PALOOZA</span>
+                        3D<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">Printables</span><span className="text-purple-400 text-sm">.ai</span>
                     </span>
                 </div>
             </div>
 
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center gap-10 font-black text-sm uppercase tracking-widest text-gray-400">
-                <button onClick={() => setView('ai-lab')} className="hover:text-purple-400 transition-all">Chat</button>
+                <button onClick={() => setView('home')} className="hover:text-purple-400 transition-all">Design</button>
+                <button onClick={() => setView('our-story')} className="hover:text-purple-400 transition-all">Our Story</button>
                 {user && (
                     <button onClick={() => setView('account')} className="hover:text-white transition-all">Orders</button>
                 )}
@@ -46,7 +47,7 @@ const Navbar = ({ cartCount, setView, mobileMenuOpen, setMobileMenuOpen, user, l
                         onClick={openAuth}
                         className="hidden md:flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-2.5 rounded-2xl font-black hover:scale-105 transition-all shadow-[0_0_20px_rgba(147,51,234,0.3)]"
                     >
-                        <LogIn size={20} /> Authorize
+                        <LogIn size={20} /> Sign In
                     </button>
                 )}
 
@@ -74,18 +75,19 @@ const Navbar = ({ cartCount, setView, mobileMenuOpen, setMobileMenuOpen, user, l
         {/* Mobile Menu */}
         {mobileMenuOpen && (
             <div className="md:hidden bg-[#0a0a1a] border-t border-white/10 p-6 flex flex-col gap-6 font-black text-sm uppercase tracking-widest text-gray-400 animate-slideDown">
-                <button onClick={() => { setView('ai-lab'); setMobileMenuOpen(false); }} className="p-2 text-purple-400 transition-all text-left">Chat</button>
+                <button onClick={() => { setView('home'); setMobileMenuOpen(false); }} className="p-2 text-purple-400 transition-all text-left">Design</button>
+                <button onClick={() => { setView('our-story'); setMobileMenuOpen(false); }} className="p-2 hover:text-purple-400 transition-all text-left">Our Story</button>
 
                 {user ? (
                     <>
                         <button onClick={() => { setView('account'); setMobileMenuOpen(false); }} className="p-2 hover:text-white transition-all text-left">Orders</button>
                         <button onClick={() => { logout(); setMobileMenuOpen(false); }} className="p-2 text-pink-500 transition-all text-left flex items-center gap-2">
-                            <LogOut size={18} /> De-Authorize
+                            <LogOut size={18} /> Sign Out
                         </button>
                     </>
                 ) : (
                     <button onClick={() => { openAuth(); setMobileMenuOpen(false); }} className="p-2 text-purple-400 transition-all text-left flex items-center gap-2">
-                        <LogIn size={18} /> Authorize
+                        <LogIn size={18} /> Sign In
                     </button>
                 )}
 

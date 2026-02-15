@@ -13,20 +13,19 @@ const ChatHeader = ({ setMessages }) => {
                     <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 border-2 border-gray-950 rounded-full animate-pulse shadow-sm"></div>
                 </div>
                 <div>
-                    <h2 className="font-black text-2xl text-white tracking-tight leading-none mb-1.5 flex items-center gap-2">
-                        AI Creation Lab
-                        <span className="bg-purple-500/20 text-purple-300 text-[10px] px-2 py-0.5 rounded-full border border-purple-500/30">EXPERIMENTAL</span>
+                    <h2 className="font-black text-2xl text-white tracking-tight leading-none mb-1.5">
+                        AI Design Studio
                     </h2>
                     <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black text-purple-400 uppercase tracking-[0.2em]">SYNCHRONIZING TELEMETRY</span>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">• Engineering Mode</span>
+                        <span className="text-[10px] font-black text-green-400 uppercase tracking-[0.2em]">Ready</span>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">• Describe your product to get started</span>
                     </div>
                 </div>
             </div>
             <button
                 onClick={() => { playHum(); setMessages([{ role: 'assistant', content: 'Design session reset. What should we create next?' }]); }}
                 className="p-3 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all duration-300 border border-transparent hover:border-rose-500/20"
-                title="Reset Design Session"
+                title="Clear Chat"
             >
                 <Trash2 size={22} />
             </button>
