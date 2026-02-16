@@ -3,7 +3,7 @@ steps:
     args:
       - 'build'
       - '--build-arg'
-      - 'VITE_GEMINI_API_KEY=AIzaSyDWqHbhdYASSCtFFDlGFjL6f3lHn8K_vy0'
+      - 'VITE_GEMINI_API_KEY=AIzaSyD8L15v1H1NgTaG7r2EToRLYvj6hjgUNOE'
       - '-t'
       - 'us-central1-docker.pkg.dev/dprintables-ai/dprintables-repo/3dprintables-ai'
       - '.'
