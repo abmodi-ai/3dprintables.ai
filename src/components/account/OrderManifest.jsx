@@ -1,14 +1,42 @@
 import React, { useState } from 'react';
-import { Send, Clock, CheckCircle, X, MessageSquare } from 'lucide-react';
+import { Send, Clock, CheckCircle, X, MessageSquare, CreditCard, Truck } from 'lucide-react';
 import { playHum } from '../../utils/sounds';
+
+const STATUS_CONFIG = {
+    quote_request:      { label: 'Quote Requested',       icon: Send,        color: 'purple',  footerMsg: 'Response within 24-48 hours' },
+    waiting_payment:    { label: 'Waiting for Payment',    icon: CreditCard,  color: 'amber',   footerMsg: 'Awaiting your payment' },
+    shipped_delivered:  { label: 'Shipped & Delivered',    icon: CheckCircle, color: 'green',    footerMsg: 'Order completed!' },
+    pending:            { label: 'Quote Requested',        icon: Send,        color: 'purple',  footerMsg: 'Response within 24-48 hours' },
+};
+
+const STATUS_STEPS = ['quote_request', 'waiting_payment', 'shipped_delivered'];
 
 const OrderManifest = ({ order, onViewChat }) => {
     const [lightboxImage, setLightboxImage] = useState(null);
     const [lightboxName, setLightboxName] = useState('');
 
-    const isQuote = order.id.startsWith('quote_');
-    const statusLabel = isQuote ? 'Quote Requested' : (order.status === 'pending' ? 'Pending' : order.status);
-    const StatusIcon = isQuote ? Send : (order.status === 'pending' ? Clock : CheckCircle);
+    const orderStatus = order.status || (order.id.startsWith('quote_') ? 'quote_request' : 'pending');
+    const config = STATUS_CONFIG[orderStatus] || STATUS_CONFIG.pending;
+    const StatusIcon = config.icon;
+
+    const currentStepIdx = STATUS_STEPS.indexOf(orderStatus);
+
+    // Badge color classes
+    const badgeColors = {
+        purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+        amber:  'bg-amber-500/10 text-amber-400 border-amber-500/20',
+        green:  'bg-green-500/10 text-green-400 border-green-500/20',
+    };
+    const footerBg = {
+        purple: 'group-hover:bg-purple-600',
+        amber:  'group-hover:bg-amber-600',
+        green:  'group-hover:bg-green-600',
+    };
+    const dotColors = {
+        purple: 'bg-purple-500',
+        amber:  'bg-amber-500',
+        green:  'bg-green-500',
+    };
 
     return (
         <>
@@ -21,18 +49,34 @@ const OrderManifest = ({ order, onViewChat }) => {
                     <div className="flex flex-col sm:flex-row justify-between gap-4 sm:gap-6 mb-6 sm:mb-8 pb-6 sm:pb-8 border-b border-white/5">
                         <div className="space-y-2 sm:space-y-3 flex-1">
                             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                                <span className="px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center gap-1.5 sm:gap-2">
+                                <span className={`px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest border flex items-center gap-1.5 sm:gap-2 ${badgeColors[config.color]}`}>
                                     <StatusIcon size={10} className="sm:hidden" />
                                     <StatusIcon size={12} className="hidden sm:block" />
-                                    {statusLabel}
+                                    {config.label}
                                 </span>
                                 <span className="text-gray-600 font-mono text-xs sm:text-sm font-black">#{order.id.split('_')[1]}</span>
                             </div>
+
+                            {/* Mini Progress Dots */}
+                            <div className="flex items-center gap-2 mt-2">
+                                {STATUS_STEPS.map((step, idx) => {
+                                    const isActive = idx <= currentStepIdx;
+                                    const stepColor = isActive
+                                        ? (idx === currentStepIdx ? dotColors[config.color] : 'bg-white/30')
+                                        : 'bg-white/10';
+                                    return (
+                                        <React.Fragment key={step}>
+                                            <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all duration-500 ${stepColor} ${idx === currentStepIdx ? 'ring-2 ring-white/20 scale-110' : ''}`}></div>
+                                            {idx < STATUS_STEPS.length - 1 && (
+                                                <div className={`w-6 sm:w-8 h-0.5 transition-colors duration-500 ${idx < currentStepIdx ? 'bg-white/20' : 'bg-white/5'}`}></div>
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </div>
+
                             <p className="text-gray-500 text-xs font-medium">
-                                {isQuote
-                                    ? 'We\'ll review your designs and get back to you with pricing.'
-                                    : `Status: ${order.status}`
-                                }
+                                {config.footerMsg}
                             </p>
                         </div>
 
@@ -64,12 +108,12 @@ const OrderManifest = ({ order, onViewChat }) => {
                     </div>
                 </div>
 
-                <div className="bg-white/5 px-4 sm:px-8 py-3 sm:py-4 border-t border-white/5 flex items-center justify-between group-hover:bg-purple-600 transition-colors duration-500">
+                <div className={`bg-white/5 px-4 sm:px-8 py-3 sm:py-4 border-t border-white/5 flex items-center justify-between ${footerBg[config.color]} transition-colors duration-500`}>
                     <div className="flex items-center gap-1.5 sm:gap-2">
-                        <Clock size={14} className="text-gray-500 group-hover:text-purple-200 sm:hidden" />
-                        <Clock size={16} className="text-gray-500 group-hover:text-purple-200 hidden sm:block" />
-                        <span className="text-[9px] sm:text-[10px] font-black text-gray-500 tracking-widest group-hover:text-purple-200 uppercase">
-                            {isQuote ? 'Response within 24-48 hours' : (order.status === 'shipped' ? 'In Transit' : 'Processing')}
+                        <StatusIcon size={14} className="text-gray-500 group-hover:text-white/80 sm:hidden" />
+                        <StatusIcon size={16} className="text-gray-500 group-hover:text-white/80 hidden sm:block" />
+                        <span className="text-[9px] sm:text-[10px] font-black text-gray-500 tracking-widest group-hover:text-white/80 uppercase">
+                            {config.footerMsg}
                         </span>
                     </div>
                     {order.chat_session_id && onViewChat && (

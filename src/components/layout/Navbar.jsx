@@ -91,8 +91,6 @@ const Navbar = ({ cartCount, setView, mobileMenuOpen, setMobileMenuOpen, user, l
                     </button>
                 )}
 
-                <div className="h-px bg-white/5 my-2"></div>
-                <button onClick={() => { setView('admin'); setMobileMenuOpen(false); }} className="p-2 hover:text-white transition-all text-left text-gray-600 text-[10px]">Admin Access</button>
             </div>
         )}
     </nav>

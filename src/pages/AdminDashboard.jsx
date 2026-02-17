@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Wand2, Plus, FileSpreadsheet, Package, ArrowLeft } from 'lucide-react';
+import { Wand2, Plus, FileSpreadsheet, Package, ArrowLeft, MessageCircle } from 'lucide-react';
 import { calculateToyPrice } from '../utils/pricing';
 import ProductForm from '../components/admin/ProductForm';
 import BulkImport from '../components/admin/BulkImport';
 import OrderList from '../components/admin/OrderList';
 import InventoryTable from '../components/admin/InventoryTable';
 import DeleteConfirmModal from '../components/admin/DeleteConfirmModal';
+import MessageCenter from '../components/admin/MessageCenter';
 
-const AdminDashboard = ({ addNewProduct, addBulkProducts, deleteProduct, products, setView }) => {
+const AdminDashboard = ({ addNewProduct, addBulkProducts, deleteProduct, products, setView, token }) => {
     const [formData, setFormData] = useState({
         name: '',
         weight: '',
@@ -37,7 +38,9 @@ const AdminDashboard = ({ addNewProduct, addBulkProducts, deleteProduct, product
     const fetchOrders = async () => {
         setIsLoadingOrders(true);
         try {
-            const response = await fetch('/api/orders');
+            const response = await fetch('/api/orders', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             const data = await response.json();
             setOrders(data);
         } catch (error) {
@@ -117,7 +120,7 @@ const AdminDashboard = ({ addNewProduct, addBulkProducts, deleteProduct, product
         try {
             const response = await fetch('/api/products', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(newProduct)
             });
             const savedProduct = await response.json();
@@ -238,6 +241,7 @@ const AdminDashboard = ({ addNewProduct, addBulkProducts, deleteProduct, product
                             { id: 'add', label: 'Add Product', icon: <Plus size={16} /> },
                             { id: 'bulk', label: 'Bulk Import', icon: <FileSpreadsheet size={16} /> },
                             { id: 'orders', label: 'Orders', icon: <Package size={16} /> },
+                            { id: 'messages', label: 'Messages', icon: <MessageCircle size={16} /> },
                             { id: 'manage', label: `Inventory (${products.length})`, icon: <Wand2 size={16} /> }
                         ].map(tab => (
                             <button
@@ -276,7 +280,11 @@ const AdminDashboard = ({ addNewProduct, addBulkProducts, deleteProduct, product
                 )}
 
                 {activeTab === 'orders' && (
-                    <OrderList orders={orders} isLoadingOrders={isLoadingOrders} />
+                    <OrderList orders={orders} isLoadingOrders={isLoadingOrders} token={token} />
+                )}
+
+                {activeTab === 'messages' && (
+                    <MessageCenter token={token} />
                 )}
 
                 {activeTab === 'manage' && (

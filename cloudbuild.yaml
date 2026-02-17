@@ -1,13 +1,22 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
     args:
-      - 'build'
-      - '--build-arg'
-      - 'VITE_GEMINI_API_KEY=AIzaSyD8L15v1H1NgTaG7r2EToRLYvj6hjgUNOE'
-      - '-t'
-      - 'us-central1-docker.pkg.dev/dprintables-ai/dprintables-repo/3dprintables-ai'
-      - '.'
+      - '-c'
+      - |
+        docker build \
+          --build-arg VITE_GEMINI_API_KEY=$$VITE_GEMINI_API_KEY \
+          -t us-central1-docker.pkg.dev/dprintables-ai/dprintables-repo/3dprintables-ai \
+          .
+    secretEnv: ['VITE_GEMINI_API_KEY']
+
 images:
   - 'us-central1-docker.pkg.dev/dprintables-ai/dprintables-repo/3dprintables-ai'
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/dprintables-ai/secrets/gemini-api-key/versions/latest
+      env: 'VITE_GEMINI_API_KEY'
+
 options:
   logging: CLOUD_LOGGING_ONLY

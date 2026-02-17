@@ -16,7 +16,7 @@ const privacyContent = (
         <p className="text-gray-400 mb-6 leading-relaxed">We implement industry-standard security measures to protect your personal information, including encrypted passwords and secure data transmission.</p>
 
         <h3 className="text-lg font-black text-white mb-3">Contact Us</h3>
-        <p className="text-gray-400 leading-relaxed">If you have questions about this Privacy Policy, please contact us at support@3dprintables.ai.</p>
+        <p className="text-gray-400 leading-relaxed">If you have questions about this Privacy Policy, please contact us at hello@3dprintables.ai.</p>
     </>
 );
 
@@ -38,7 +38,7 @@ const termsContent = (
         <p className="text-gray-400 mb-6 leading-relaxed">Since all products are custom-made, we offer refunds only for defective items or items that do not match the approved design. Please contact support within 14 days of receiving your order.</p>
 
         <h3 className="text-lg font-black text-white mb-3">Contact Us</h3>
-        <p className="text-gray-400 leading-relaxed">For questions about these Terms, contact us at support@3dprintables.ai.</p>
+        <p className="text-gray-400 leading-relaxed">For questions about these Terms, contact us at hello@3dprintables.ai.</p>
     </>
 );
 
