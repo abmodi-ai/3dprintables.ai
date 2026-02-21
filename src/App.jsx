@@ -19,6 +19,8 @@ import UserAccountPage from './pages/UserAccountPage';
 import OurStoryPage from './pages/OurStoryPage';
 import ChatHistoryView from './pages/ChatHistoryView';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
+import PaymentCancelPage from './pages/PaymentCancelPage';
 
 // Components
 import AuthModal from './components/auth/AuthModal';
@@ -31,6 +33,8 @@ const App = () => {
     const pathname = window.location.pathname;
     if (pathname === '/admin') return 'admin';
     if (pathname === '/reset-password') return 'reset-password';
+    if (pathname === '/payment/success') return 'payment-success';
+    if (pathname === '/payment/cancel') return 'payment-cancel';
     return 'home';
   });
   const [isAdminRoute, setIsAdminRoute] = useState(() => window.location.pathname === '/admin');
@@ -72,6 +76,12 @@ const App = () => {
         const params = new URLSearchParams(window.location.search);
         setResetToken(params.get('token') || null);
         setView('reset-password');
+        setIsAdminRoute(false);
+      } else if (pathname === '/payment/success') {
+        setView('payment-success');
+        setIsAdminRoute(false);
+      } else if (pathname === '/payment/cancel') {
+        setView('payment-cancel');
         setIsAdminRoute(false);
       } else {
         setIsAdminRoute(false);
@@ -330,6 +340,12 @@ const App = () => {
               />
             )}
           </>
+        )}
+        {view === 'payment-success' && (
+          <PaymentSuccessPage setView={(v) => { setView(v); window.history.pushState({}, '', '/'); }} />
+        )}
+        {view === 'payment-cancel' && (
+          <PaymentCancelPage setView={(v) => { setView(v); window.history.pushState({}, '', '/'); }} />
         )}
         {view === 'reset-password' && (
           <ResetPasswordPage

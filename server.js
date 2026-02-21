@@ -12,10 +12,12 @@ import https from 'https';
 import http from 'http';
 import crypto from 'crypto';
 import multer from 'multer';
+import Stripe from 'stripe';
 
 dotenv.config();
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -30,7 +32,14 @@ const dbPath = process.env.DB_PATH || join(__dirname, '3dprintables.db');
 const db = new Database(dbPath);
 
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+// Skip JSON parsing for Stripe webhook (needs raw body for signature verification)
+app.use((req, res, next) => {
+    if (req.originalUrl === '/api/webhooks/stripe') {
+        next();
+    } else {
+        express.json({ limit: '50mb' })(req, res, next);
+    }
+});
 
 // Uploads directory for message attachments (persistent on GCS FUSE mount)
 const uploadsDir = process.env.DB_PATH ? join(dirname(process.env.DB_PATH), 'uploads') : join(__dirname, 'uploads');
@@ -165,6 +174,22 @@ db.exec(`
     used INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS payment_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id TEXT NOT NULL UNIQUE,
+    product_name TEXT NOT NULL,
+    price REAL NOT NULL,
+    dimensions TEXT,
+    delivery_days INTEGER,
+    dimension_image TEXT,
+    stripe_session_id TEXT,
+    stripe_payment_intent_id TEXT,
+    paid INTEGER DEFAULT 0,
+    paid_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(order_id) REFERENCES orders(id)
   );
 `);
 
@@ -778,7 +803,7 @@ app.patch('/api/orders/:orderId/status', authenticateToken, requireAdmin, async 
     const { orderId } = req.params;
     const { status } = req.body;
 
-    const validStatuses = ['quote_request', 'waiting_payment', 'shipped_delivered'];
+    const validStatuses = ['quote_request', 'waiting_payment', 'shipped_delivered', 'cancelled'];
     if (!validStatuses.includes(status)) {
         return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
     }
@@ -843,6 +868,313 @@ app.patch('/api/orders/:orderId/status', authenticateToken, requireAdmin, async 
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+});
+
+// Payment Request — admin fills out pricing details and sends payment email to customer
+app.post('/api/orders/:orderId/payment-request', authenticateToken, requireAdmin, upload.single('dimension_image'), async (req, res) => {
+    const { orderId } = req.params;
+    const { product_name, price, dimensions, delivery_days } = req.body;
+
+    try {
+        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+
+        const numericPrice = parseFloat(price);
+        if (!numericPrice || numericPrice <= 0) return res.status(400).json({ error: 'Valid price is required' });
+        if (!product_name || !product_name.trim()) return res.status(400).json({ error: 'Product name is required' });
+
+        const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
+        // Insert or replace payment request
+        db.prepare(`
+            INSERT OR REPLACE INTO payment_requests (order_id, product_name, price, dimensions, delivery_days, dimension_image)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).run(orderId, product_name.trim(), numericPrice, dimensions || null, parseInt(delivery_days) || null, imageUrl);
+
+        // Update order status and total
+        db.prepare('UPDATE orders SET status = ?, total = ? WHERE id = ?').run('waiting_payment', numericPrice, orderId);
+
+        // Build payment link
+        const baseUrl = process.env.APP_URL || 'https://3dprintables.ai';
+        const paymentUrl = `${baseUrl}/api/payment/${orderId}/checkout`;
+
+        // Build dimension image URL for email
+        const dimensionImageUrl = imageUrl ? `${baseUrl}${imageUrl}` : null;
+        const deliveryDaysNum = parseInt(delivery_days) || null;
+
+        // Send payment request email to customer
+        if (process.env.RESEND_API_KEY && order.email) {
+            try {
+                await resend.emails.send({
+                    from: '3DPrintables.ai <hello@3dprintables.ai>',
+                    to: [order.email],
+                    subject: `Payment Request — $${numericPrice.toFixed(2)} — ${orderId}`,
+                    html: `
+                        <div style="font-family: 'Inter', -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px; border: 1px solid #e5e7eb; border-radius: 16px; background: #ffffff; color: #111827;">
+                            <div style="text-align: center; margin-bottom: 24px;">
+                                <h1 style="color: #7c3aed; font-size: 24px; margin: 0;">3DPrintables.ai</h1>
+                                <p style="color: #6b7280; font-size: 14px; margin-top: 4px;">Payment Request</p>
+                            </div>
+                            <div style="margin: 0 0 24px 0; padding: 20px; background: #faf5ff; border-radius: 12px; border: 1px solid #e9d5ff;">
+                                <p style="color: #374151; margin: 0; font-size: 15px;">Hi <strong>${order.customer_name}</strong>,</p>
+                                <p style="color: #374151; margin: 12px 0 0 0; font-size: 15px;">
+                                    Your quote has been finalized! Here are the details for your custom 3D print:
+                                </p>
+                            </div>
+                            <div style="margin: 0 0 24px 0; padding: 20px; background: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb;">
+                                <p style="font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-top: 0; font-weight: 700;">Order Details</p>
+                                ${dimensionImageUrl ? `<img src="${dimensionImageUrl}" alt="3D Dimensions" style="width: 100%; max-width: 400px; border-radius: 12px; margin-bottom: 16px; display: block;" />` : ''}
+                                <p style="margin: 4px 0; color: #374151; font-size: 14px;"><strong>Product:</strong> ${product_name.trim()}</p>
+                                ${dimensions ? `<p style="margin: 4px 0; color: #374151; font-size: 14px;"><strong>Dimensions:</strong> ${dimensions}</p>` : ''}
+                                ${deliveryDaysNum ? `<p style="margin: 4px 0; color: #374151; font-size: 14px;"><strong>Estimated Delivery:</strong> ${deliveryDaysNum} business days</p>` : ''}
+                                <p style="margin: 16px 0 0 0; color: #7c3aed; font-size: 32px; font-weight: 900;">$${numericPrice.toFixed(2)}</p>
+                            </div>
+                            <div style="text-align: center; margin: 0 0 24px 0;">
+                                <a href="${paymentUrl}" style="display: inline-block; padding: 16px 48px; background: linear-gradient(135deg, #7c3aed, #6366f1); color: #ffffff; text-decoration: none; border-radius: 9999px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);">
+                                    Pay Now — $${numericPrice.toFixed(2)}
+                                </a>
+                            </div>
+                            <div style="margin: 0 0 24px 0; padding: 16px 20px; background: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb;">
+                                <p style="color: #6b7280; font-size: 13px; margin: 0;">
+                                    Click the button above to securely pay via Stripe. After payment, we'll start printing your creation!
+                                </p>
+                            </div>
+                            <p style="color: #6b7280; font-size: 13px; text-align: center; margin: 0;">Quote ID: <strong>${orderId}</strong></p>
+                            <p style="color: #6b7280; font-size: 12px; margin-top: 16px; text-align: center;">&copy; ${new Date().getFullYear()} 3DPrintables.ai</p>
+                        </div>
+                    `
+                });
+                console.log(`✅ Payment request email sent to ${order.email} for ${orderId}`);
+            } catch (emailErr) {
+                console.error(`❌ Payment request email failed:`, emailErr.message);
+            }
+        }
+
+        res.json({ success: true, orderId, paymentUrl });
+    } catch (error) {
+        console.error('Payment request error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get payment request details for an order
+app.get('/api/orders/:orderId/payment-request', authenticateToken, (req, res) => {
+    const { orderId } = req.params;
+    const pr = db.prepare('SELECT * FROM payment_requests WHERE order_id = ?').get(orderId);
+    if (!pr) return res.status(404).json({ error: 'No payment request found' });
+    res.json(pr);
+});
+
+// Resend payment reminder email to customer
+app.post('/api/orders/:orderId/payment-reminder', authenticateToken, requireAdmin, async (req, res) => {
+    const { orderId } = req.params;
+
+    try {
+        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+        if (order.status !== 'waiting_payment') return res.status(400).json({ error: 'Order is not awaiting payment' });
+
+        const paymentRequest = db.prepare('SELECT * FROM payment_requests WHERE order_id = ?').get(orderId);
+        if (!paymentRequest) return res.status(404).json({ error: 'No payment request found for this order' });
+        if (paymentRequest.paid) return res.status(400).json({ error: 'Payment has already been received' });
+
+        const baseUrl = process.env.APP_URL || 'https://3dprintables.ai';
+        const paymentUrl = `${baseUrl}/api/payment/${orderId}/checkout`;
+        const dimensionImageUrl = paymentRequest.dimension_image ? `${baseUrl}${paymentRequest.dimension_image}` : null;
+
+        if (process.env.RESEND_API_KEY && order.email) {
+            await resend.emails.send({
+                from: '3DPrintables.ai <hello@3dprintables.ai>',
+                to: [order.email],
+                subject: `Payment Reminder — $${paymentRequest.price.toFixed(2)} — ${orderId}`,
+                html: `
+                    <div style="font-family: 'Inter', -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px; border: 1px solid #e5e7eb; border-radius: 16px; background: #ffffff; color: #111827;">
+                        <div style="text-align: center; margin-bottom: 24px;">
+                            <h1 style="color: #7c3aed; font-size: 24px; margin: 0;">3DPrintables.ai</h1>
+                            <p style="color: #6b7280; font-size: 14px; margin-top: 4px;">Payment Reminder</p>
+                        </div>
+                        <div style="margin: 0 0 24px 0; padding: 20px; background: #fffbeb; border-radius: 12px; border: 1px solid #fde68a;">
+                            <p style="color: #374151; margin: 0; font-size: 15px;">Hi <strong>${order.customer_name}</strong>,</p>
+                            <p style="color: #374151; margin: 12px 0 0 0; font-size: 15px;">
+                                This is a friendly reminder that your payment for the following order is still pending:
+                            </p>
+                        </div>
+                        <div style="margin: 0 0 24px 0; padding: 20px; background: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb;">
+                            <p style="font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-top: 0; font-weight: 700;">Order Details</p>
+                            ${dimensionImageUrl ? `<img src="${dimensionImageUrl}" alt="3D Dimensions" style="width: 100%; max-width: 400px; border-radius: 12px; margin-bottom: 16px; display: block;" />` : ''}
+                            <p style="margin: 4px 0; color: #374151; font-size: 14px;"><strong>Product:</strong> ${paymentRequest.product_name}</p>
+                            ${paymentRequest.dimensions ? `<p style="margin: 4px 0; color: #374151; font-size: 14px;"><strong>Dimensions:</strong> ${paymentRequest.dimensions}</p>` : ''}
+                            ${paymentRequest.delivery_days ? `<p style="margin: 4px 0; color: #374151; font-size: 14px;"><strong>Estimated Delivery:</strong> ${paymentRequest.delivery_days} business days</p>` : ''}
+                            <p style="margin: 16px 0 0 0; color: #7c3aed; font-size: 32px; font-weight: 900;">$${paymentRequest.price.toFixed(2)}</p>
+                        </div>
+                        <div style="text-align: center; margin: 0 0 24px 0;">
+                            <a href="${paymentUrl}" style="display: inline-block; padding: 16px 48px; background: linear-gradient(135deg, #7c3aed, #6366f1); color: #ffffff; text-decoration: none; border-radius: 9999px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);">
+                                Pay Now — $${paymentRequest.price.toFixed(2)}
+                            </a>
+                        </div>
+                        <div style="margin: 0 0 24px 0; padding: 16px 20px; background: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb;">
+                            <p style="color: #6b7280; font-size: 13px; margin: 0;">
+                                Click the button above to securely pay via Stripe. After payment, we'll start printing your creation!
+                            </p>
+                        </div>
+                        <p style="color: #6b7280; font-size: 13px; text-align: center; margin: 0;">Quote ID: <strong>${orderId}</strong></p>
+                        <p style="color: #6b7280; font-size: 12px; margin-top: 16px; text-align: center;">&copy; ${new Date().getFullYear()} 3DPrintables.ai</p>
+                    </div>
+                `
+            });
+            console.log(`✅ Payment reminder email sent to ${order.email} for ${orderId}`);
+            res.json({ success: true, message: 'Payment reminder sent' });
+        } else {
+            res.status(500).json({ error: 'Email service not configured' });
+        }
+    } catch (error) {
+        console.error('Payment reminder error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Stripe Checkout — creates session on-the-fly and redirects customer (avoids 24hr expiry)
+app.get('/api/payment/:orderId/checkout', async (req, res) => {
+    const { orderId } = req.params;
+    const baseUrl = process.env.APP_URL || 'https://3dprintables.ai';
+
+    try {
+        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+        const paymentRequest = db.prepare('SELECT * FROM payment_requests WHERE order_id = ?').get(orderId);
+
+        if (!order || !paymentRequest) return res.status(404).send('Order not found');
+        if (paymentRequest.paid) return res.redirect(`${baseUrl}/payment/success?order=${orderId}`);
+        if (order.status !== 'waiting_payment') return res.status(400).send('Payment not expected for this order');
+
+        if (!stripe) return res.status(500).send('Payment system not configured');
+
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+                price_data: {
+                    currency: 'usd',
+                    product_data: {
+                        name: paymentRequest.product_name,
+                        description: paymentRequest.dimensions ? `Dimensions: ${paymentRequest.dimensions}` : undefined,
+                        images: paymentRequest.dimension_image ? [`${baseUrl}${paymentRequest.dimension_image}`] : [],
+                    },
+                    unit_amount: Math.round(paymentRequest.price * 100),
+                },
+                quantity: 1,
+            }],
+            mode: 'payment',
+            success_url: `${baseUrl}/payment/success?order=${orderId}&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${baseUrl}/payment/cancel?order=${orderId}`,
+            customer_email: order.email,
+            metadata: { orderId },
+        });
+
+        // Store session ID
+        db.prepare('UPDATE payment_requests SET stripe_session_id = ? WHERE order_id = ?').run(session.id, orderId);
+
+        res.redirect(303, session.url);
+    } catch (error) {
+        console.error('Stripe checkout error:', error);
+        res.status(500).send('Failed to create checkout session');
+    }
+});
+
+// Stripe Webhook — confirms payment
+app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+
+    if (!stripe) return res.status(500).json({ error: 'Stripe not configured' });
+
+    let event;
+    try {
+        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    } catch (err) {
+        console.error('❌ Stripe webhook signature verification failed:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    if (event.type === 'checkout.session.completed') {
+        const session = event.data.object;
+        const orderId = session.metadata?.orderId;
+
+        if (orderId) {
+            console.log(`✅ Payment received for order ${orderId}`);
+
+            db.prepare(`
+                UPDATE payment_requests SET paid = 1, paid_at = CURRENT_TIMESTAMP, stripe_payment_intent_id = ? WHERE order_id = ?
+            `).run(session.payment_intent, orderId);
+
+            // Don't auto-advance to shipped — admin will do that manually
+            // But we can update the payment status in a message
+            const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+
+            if (order && process.env.RESEND_API_KEY) {
+                try {
+                    // Send payment confirmation email to customer
+                    await resend.emails.send({
+                        from: '3DPrintables.ai <hello@3dprintables.ai>',
+                        to: [order.email],
+                        subject: `Payment Confirmed — ${orderId}`,
+                        html: `
+                            <div style="font-family: 'Inter', -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px; border: 1px solid #e5e7eb; border-radius: 16px; background: #ffffff; color: #111827;">
+                                <div style="text-align: center; margin-bottom: 24px;">
+                                    <h1 style="color: #7c3aed; font-size: 24px; margin: 0;">3DPrintables.ai</h1>
+                                    <p style="color: #6b7280; font-size: 14px; margin-top: 4px;">Payment Confirmation</p>
+                                </div>
+                                <div style="margin: 0 0 24px 0; padding: 20px; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0;">
+                                    <p style="color: #374151; margin: 0; font-size: 15px;">Hi <strong>${order.customer_name}</strong>,</p>
+                                    <p style="color: #374151; margin: 12px 0 0 0; font-size: 15px;">
+                                        Your payment has been received! We're now starting production on your custom 3D print.
+                                    </p>
+                                </div>
+                                <div style="text-align: center; margin: 0 0 24px 0;">
+                                    <span style="display: inline-block; padding: 8px 20px; border-radius: 9999px; font-size: 13px; font-weight: 700; color: white; background: #22c55e;">Payment Confirmed ✓</span>
+                                </div>
+                                <p style="color: #6b7280; font-size: 13px; text-align: center; margin: 0;">Quote ID: <strong>${orderId}</strong></p>
+                                <p style="color: #6b7280; font-size: 12px; margin-top: 16px; text-align: center;">&copy; ${new Date().getFullYear()} 3DPrintables.ai</p>
+                            </div>
+                        `
+                    });
+
+                    // Notify admin team
+                    await resend.emails.send({
+                        from: '3DPrintables.ai <hello@3dprintables.ai>',
+                        to: ['ab@abmodi.ai', 'arav@abmodi.ai'],
+                        subject: `💰 Payment Received — ${orderId} — $${order.total.toFixed(2)}`,
+                        html: `
+                            <div style="font-family: 'Inter', -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px; border: 1px solid #e5e7eb; border-radius: 16px; background: #ffffff; color: #111827;">
+                                <div style="text-align: center; margin-bottom: 24px;">
+                                    <h1 style="color: #22c55e; font-size: 24px; margin: 0;">Payment Received!</h1>
+                                </div>
+                                <div style="padding: 20px; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0;">
+                                    <p style="margin: 4px 0; color: #374151;"><strong>Customer:</strong> ${order.customer_name}</p>
+                                    <p style="margin: 4px 0; color: #374151;"><strong>Email:</strong> ${order.email}</p>
+                                    <p style="margin: 4px 0; color: #374151;"><strong>Order:</strong> ${orderId}</p>
+                                    <p style="margin: 4px 0; color: #22c55e; font-size: 24px; font-weight: 900;">$${order.total.toFixed(2)}</p>
+                                </div>
+                            </div>
+                        `
+                    });
+
+                    console.log(`✅ Payment confirmation emails sent for ${orderId}`);
+                } catch (emailErr) {
+                    console.error(`❌ Payment confirmation email failed:`, emailErr.message);
+                }
+            }
+
+            // Add a system message to the order
+            try {
+                db.prepare(`INSERT INTO order_messages (order_id, sender, message) VALUES (?, 'admin', ?)`).run(
+                    orderId,
+                    `💰 Payment of $${order.total.toFixed(2)} received via Stripe. Production will begin shortly.`
+                );
+            } catch (e) {
+                // non-critical
+            }
+        }
+    }
+
+    res.json({ received: true });
 });
 
 // Send a message for an order (admin only → customer email)
@@ -1335,6 +1667,7 @@ if (fs.existsSync(distPath)) {
     app.use(express.static(distPath));
     // SPA fallback — any non-API route serves index.html
     app.get('/{*splat}', (req, res) => {
+        if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not found' });
         res.sendFile(join(distPath, 'index.html'));
     });
     console.log('📦 Serving static frontend from /dist');

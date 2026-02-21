@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, Package, Send, CreditCard, Truck, MessageCircle, ChevronDown, ChevronUp, Clock, User, Mail, ImagePlus, X, Search, XCircle, Ban } from 'lucide-react';
+import { Loader2, Package, Send, CreditCard, Truck, MessageCircle, ChevronDown, ChevronUp, Clock, User, Mail, ImagePlus, X, Search, XCircle, Ban, CheckCircle, RefreshCw, Settings2 } from 'lucide-react';
+import PaymentRequestModal from './PaymentRequestModal';
 
 const STATUS_STEPS = [
     { key: 'quote_request', label: 'Quote Request', icon: Send, color: 'purple' },
@@ -31,6 +32,9 @@ const OrderList = ({ orders, isLoadingOrders, token, onOrderCancelled }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [cancellingOrder, setCancellingOrder] = useState(null);
+    const [paymentModalOrder, setPaymentModalOrder] = useState(null);
+    const [resendingPayment, setResendingPayment] = useState(null);
+    const [orderTotals, setOrderTotals] = useState({});
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
 
@@ -70,6 +74,63 @@ const OrderList = ({ orders, isLoadingOrders, token, onOrderCancelled }) => {
     };
 
     const handleStatusChange = async (orderId, newStatus) => {
+        if (updatingStatus) return;
+        const currentStatus = orderStatuses[orderId] || 'quote_request';
+        if (currentStatus === newStatus) return;
+
+        // Intercept: when moving to waiting_payment from quote_request, show payment modal
+        if (newStatus === 'waiting_payment' && currentStatus === 'quote_request') {
+            const order = orders.find(o => o.id === orderId);
+            setPaymentModalOrder(order);
+            return;
+        }
+
+        setUpdatingStatus(orderId);
+        try {
+            const res = await fetch(`/api/orders/${orderId}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ status: newStatus }),
+            });
+            if (res.ok) {
+                setOrderStatuses(prev => ({ ...prev, [orderId]: newStatus }));
+            }
+        } catch (err) {
+            console.error('Failed to update status:', err);
+        } finally {
+            setUpdatingStatus(null);
+        }
+    };
+
+    const handlePaymentRequestSuccess = (orderId, newPrice) => {
+        setOrderStatuses(prev => ({ ...prev, [orderId]: 'waiting_payment' }));
+        setOrderTotals(prev => ({ ...prev, [orderId]: newPrice }));
+        setPaymentModalOrder(null);
+    };
+
+    const handleResendPaymentReminder = async (orderId) => {
+        if (resendingPayment) return;
+        setResendingPayment(orderId);
+        try {
+            const res = await fetch(`/api/orders/${orderId}/payment-reminder`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            if (res.ok) {
+                alert('Payment reminder sent!');
+            } else {
+                const data = await res.json();
+                alert(data.error || 'Failed to send reminder');
+            }
+        } catch (err) {
+            console.error('Failed to resend payment reminder:', err);
+            alert('Failed to send reminder');
+        } finally {
+            setResendingPayment(null);
+        }
+    };
+
+    const handleManualStatusChange = async (orderId, newStatus) => {
         if (updatingStatus) return;
         const currentStatus = orderStatuses[orderId] || 'quote_request';
         if (currentStatus === newStatus) return;
@@ -314,23 +375,51 @@ const OrderList = ({ orders, isLoadingOrders, token, onOrderCancelled }) => {
                                     </div>
                                     <div className="text-right md:min-w-[200px]">
                                         <div className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-2">Transaction Value</div>
-                                        <div className="text-5xl font-black text-white drop-shadow-[0_0_15px_rgba(168,85,247,0.3)]">${order.total.toFixed(2)}</div>
+                                        <div className="text-5xl font-black text-white drop-shadow-[0_0_15px_rgba(168,85,247,0.3)]">${(orderTotals[order.id] ?? order.total).toFixed(2)}</div>
                                         <div className="text-[10px] font-black text-gray-500 mt-3 uppercase tracking-widest">{new Date(order.created_at).toLocaleString()}</div>
                                         {(orderStatuses[order.id] || order.status) !== 'cancelled' && (orderStatuses[order.id] || order.status) !== 'shipped_delivered' && (
-                                            <button
-                                                onClick={() => handleCancelOrder(order.id)}
-                                                disabled={cancellingOrder === order.id}
-                                                className="mt-3 px-4 py-1.5 bg-red-600/10 text-red-400 border border-red-500/20 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-red-600/20 hover:border-red-500/40 transition-all disabled:opacity-40 flex items-center gap-1.5 ml-auto"
-                                            >
-                                                {cancellingOrder === order.id ? <Loader2 size={10} className="animate-spin" /> : <Ban size={10} />}
-                                                Cancel Order
-                                            </button>
+                                            <div className="flex flex-col items-end gap-2 mt-3">
+                                                {(orderStatuses[order.id] || order.status) === 'waiting_payment' && (
+                                                    <button
+                                                        onClick={() => handleResendPaymentReminder(order.id)}
+                                                        disabled={resendingPayment === order.id}
+                                                        className="px-4 py-1.5 bg-amber-600/10 text-amber-400 border border-amber-500/20 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-amber-600/20 hover:border-amber-500/40 transition-all disabled:opacity-40 flex items-center gap-1.5"
+                                                    >
+                                                        {resendingPayment === order.id ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
+                                                        Resend Payment Email
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => handleCancelOrder(order.id)}
+                                                    disabled={cancellingOrder === order.id}
+                                                    className="px-4 py-1.5 bg-red-600/10 text-red-400 border border-red-500/20 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-red-600/20 hover:border-red-500/40 transition-all disabled:opacity-40 flex items-center gap-1.5"
+                                                >
+                                                    {cancellingOrder === order.id ? <Loader2 size={10} className="animate-spin" /> : <Ban size={10} />}
+                                                    Cancel Order
+                                                </button>
+                                            </div>
                                         )}
                                         {(orderStatuses[order.id] || order.status) === 'cancelled' && (
                                             <div className="mt-3 px-4 py-1.5 bg-red-600/10 text-red-400 border border-red-500/20 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 ml-auto w-fit">
                                                 <XCircle size={10} /> Cancelled
                                             </div>
                                         )}
+                                        {/* Manual Status Override */}
+                                        <div className="flex items-center gap-2 mt-3 ml-auto">
+                                            <Settings2 size={10} className="text-gray-600" />
+                                            <select
+                                                value={orderStatuses[order.id] || order.status || 'quote_request'}
+                                                onChange={(e) => handleManualStatusChange(order.id, e.target.value)}
+                                                disabled={updatingStatus === order.id}
+                                                className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-gray-400 focus:outline-none focus:border-purple-500/40 cursor-pointer hover:border-purple-500/20 transition-colors appearance-none"
+                                                style={{ backgroundImage: 'none' }}
+                                            >
+                                                <option value="quote_request" className="bg-gray-900 text-gray-300">Quote Request</option>
+                                                <option value="waiting_payment" className="bg-gray-900 text-gray-300">Waiting Payment</option>
+                                                <option value="shipped_delivered" className="bg-gray-900 text-gray-300">Shipped & Delivered</option>
+                                                <option value="cancelled" className="bg-gray-900 text-gray-300">Cancelled</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -387,7 +476,9 @@ const OrderList = ({ orders, isLoadingOrders, token, onOrderCancelled }) => {
                                                             )}
                                                         </div>
                                                         <span className={`text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-center leading-tight ${isCurrent || isCompleted ? 'text-white/90' : textClass}`}>
-                                                            {step.label}
+                                                            {step.key === 'waiting_payment'
+                                                                ? (currentIdx >= 1 ? 'Waiting on Payment' : 'Request Payment')
+                                                                : step.label}
                                                         </span>
                                                     </button>
                                                     {idx < STATUS_STEPS.length - 1 && (
@@ -617,6 +708,16 @@ const OrderList = ({ orders, isLoadingOrders, token, onOrderCancelled }) => {
                 )}
                 </>
             )}
+
+            {/* Payment Request Modal */}
+            <PaymentRequestModal
+                isOpen={!!paymentModalOrder}
+                onClose={() => setPaymentModalOrder(null)}
+                orderId={paymentModalOrder?.id}
+                order={paymentModalOrder}
+                token={token}
+                onSuccess={handlePaymentRequestSuccess}
+            />
         </div>
     );
 };
